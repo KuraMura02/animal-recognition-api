@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import io
 
-model = tf.keras.models.load_model("model/model_mobilenet.h5")
+model = tf.keras.models.load_model("model/model_mobilenet.keras")
 classes = [line.strip() for line in open("classes.txt")]
 
 def predict_animal(image_bytes):
