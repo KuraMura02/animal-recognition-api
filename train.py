@@ -60,7 +60,7 @@ model.fit(
     callbacks=[early_stop]
 )
 os.makedirs("model", exist_ok=True)
-model.save("model/model_mobilenet.keras")
+model.save("model/model_mobilenet.h5")
 
 # сохраняем имена классов
 with open("classes.txt", "w") as f:
