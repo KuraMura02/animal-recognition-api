@@ -2,7 +2,9 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from utils.predict import predict_animal
+import os
 
+port = int(os.environ.get("PORT", 10000))
 app = FastAPI()
 
 app.add_middleware(
