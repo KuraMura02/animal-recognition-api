@@ -1,12 +1,10 @@
-# train.py
+#train.py
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.callbacks import EarlyStopping
 import os
-import tf2onnx
-import onnx
 
 dataset_dir = "dataset"
 classes = sorted(os.listdir(dataset_dir))
@@ -36,7 +34,7 @@ val_generator = datagen.flow_from_directory(
     subset='validation'
 )
 
-# MobileNetV2 без последнего слоя
+# MobileNetV2
 base_model = tf.keras.applications.MobileNetV2(
     input_shape=(224,224,3),
     include_top=False,
@@ -61,38 +59,28 @@ model.fit(
     callbacks=[early_stop]
 )
 
-# Создаем директории
 os.makedirs("model", exist_ok=True)
 
-# 1. Сохраняем в Keras format (на всякий случай)
+# 1. Сохраняем в H5
 model.save("model/model_mobilenet.h5")
 
-# 2. Конвертируем в ONNX
-print("Конвертация в ONNX...")
+# 2. Конвертируем в TensorFlow Lite
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
-# Определяем входную сигнатуру (batch_size=None, height=224, width=224, channels=3)
-spec = (tf.TensorSpec((None, 224, 224, 3), tf.float32, name="input"),)
+# Оптимизация для CPU
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.target_spec.supported_types = [tf.float32]
 
-# Конвертация
-model_proto, _ = tf2onnx.convert.from_keras(
-    model, 
-    input_signature=spec,
-    opset=13  # Стабильная версия ONNX opset
-)
+# Конвертируем
+tflite_model = converter.convert()
 
-# Сохраняем ONNX модель
-onnx_path = "model/model_mobilenet.onnx"
-onnx.save(model_proto, onnx_path)
-print(f"ONNX модель сохранена в {onnx_path}")
+# Сохраняем TFLite модель
+with open("model/model_mobilenet.tflite", "wb") as f:
+    f.write(tflite_model)
 
-# 3. Проверяем ONNX модель
-onnx_model = onnx.load(onnx_path)
-onnx.checker.check_model(onnx_model)
-print("ONNX модель валидна!")
-
-# Сохраняем имена классов
+# Сохраняем классы
 with open("model/classes.txt", "w") as f:
     for c in classes:
         f.write(f"{c}\n")
 
-print("Модель обучена и сконвертирована в ONNX!")
+print("Модель сохранена в H5 и TFLite форматах!")
