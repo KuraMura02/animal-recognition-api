@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tflite_runtime.interpreter as tflite
 import numpy as np
 from PIL import Image
 import io
@@ -9,7 +9,7 @@ model_path = os.path.join(os.path.dirname(__file__), "..", "model", "model_mobil
 classes_path = os.path.join(os.path.dirname(__file__), "..", "model", "classes.txt")
 
 # Загружаем интерпретатор
-interpreter = tf.lite.Interpreter(model_path=model_path)
+interpreter = tflite.Interpreter(model_path=model_path)
 interpreter.allocate_tensors()
 
 # Получаем детали входного и выходного слоев
@@ -24,7 +24,7 @@ def predict_animal(image_bytes):
     """
     Предсказание животного по изображению используя TFLite
     """
-    # Загружаем и预处理 изображение
+    # Загружаем и предобрабатываем изображение
     img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
     img = img.resize((224, 224))
     
