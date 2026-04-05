@@ -1,32 +1,47 @@
 # utils/predict.py
-import tensorflow as tf
+import onnxruntime as ort
 import numpy as np
 from PIL import Image
 import io
+import os
 
-model = None
-classes = None
+# Загружаем ONNX модель (более стабильно, чем TensorFlow)
+model_path = os.path.join(os.path.dirname(__file__), "..", "model", "model_mobilenet.onnx")
+classes_path = os.path.join(os.path.dirname(__file__), "..", "model", "classes.txt")
 
-def load_model_once():
-    global model, classes
-    if model is None:
-        # compile=False убирает проблемы с параметрами BatchNormalization
-        model = tf.keras.models.load_model("model/model_mobilenet.h5", compile=False)
-        with open("classes.txt", "r", encoding="utf-8") as f:
-            classes = [line.strip() for line in f]
+# Создаем сессию ONNX Runtime
+session = ort.InferenceSession(model_path)
+
+# Загружаем классы
+with open(classes_path, "r") as f:
+    classes = [line.strip() for line in f.readlines()]
+
+# Получаем имя входного слоя
+input_name = session.get_inputs()[0].name
+
 
 def predict_animal(image_bytes):
-    load_model_once()
-
+    """
+    Предсказание животного по изображению
+    """
+    # Загружаем и预处理 изображение
     img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
     img = img.resize((224, 224))
+
+    # Нормализация и преобразование в numpy
     x = np.array(img, dtype=np.float32) / 255.0
+
+    # Добавляем batch dimension
     x = np.expand_dims(x, axis=0)
 
-    pred = model.predict(x)
-    class_idx = np.argmax(pred)
+    # Инференс через ONNX Runtime
+    pred = session.run(None, {input_name: x})[0]
+
+    # Получаем предсказанный класс
+    class_idx = np.argmax(pred[0])
+    confidence = float(pred[0][class_idx])
 
     return {
         "animal": classes[class_idx],
-        "confidence": float(pred[0][class_idx])
+        "confidence": confidence
     }
