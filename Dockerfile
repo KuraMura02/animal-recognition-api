@@ -2,11 +2,9 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Установка системных зависимостей
+# Устанавливаем только необходимые системные зависимости
 RUN apt-get update && apt-get install -y \
-    libhdf5-dev \
-    libc-ares-dev \
-    libeigen3-dev \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Копируем requirements
@@ -18,7 +16,7 @@ COPY model/ ./model/
 COPY utils/ ./utils/
 COPY main.py .
 
-# Создаем пользователя
+# Создаем непривилегированного пользователя
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
