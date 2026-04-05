@@ -8,7 +8,7 @@ app = FastAPI(title="Animal Classifier API")
 
 @app.get("/")
 def root():
-    return {"message": "Animal Classification API with ONNX"}
+    return {"message": "Animal Classification API"}
 
 
 @app.post("/predict/")
