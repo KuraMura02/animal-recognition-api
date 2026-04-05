@@ -2,9 +2,19 @@ FROM python:3.10
 
 WORKDIR /app
 
-COPY . .
+# Копируем requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Копируем модель и код
+COPY model/ ./model/
+COPY utils/ ./utils/
+COPY main.py .
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "10000"]
+# Создаем непривилегированного пользователя
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
