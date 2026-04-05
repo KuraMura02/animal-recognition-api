@@ -9,7 +9,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # фронтенд с любого домена
+    allow_origins=["https://miranzahotel.kesug.com"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
