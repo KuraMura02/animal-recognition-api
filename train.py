@@ -5,6 +5,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.callbacks import EarlyStopping
 import os
+import tf2onnx
+import onnx
 
 dataset_dir = "dataset"
 classes = sorted(os.listdir(dataset_dir))
@@ -17,7 +19,6 @@ datagen = ImageDataGenerator(
     rotation_range=20,
     zoom_range=0.2
 )
-
 
 train_generator = datagen.flow_from_directory(
     dataset_dir,
@@ -59,12 +60,39 @@ model.fit(
     epochs=20,
     callbacks=[early_stop]
 )
+
+# Создаем директории
 os.makedirs("model", exist_ok=True)
+
+# 1. Сохраняем в Keras format (на всякий случай)
 model.save("model/model_mobilenet.h5")
 
-# сохраняем имена классов
-with open("classes.txt", "w") as f:
+# 2. Конвертируем в ONNX
+print("Конвертация в ONNX...")
+
+# Определяем входную сигнатуру (batch_size=None, height=224, width=224, channels=3)
+spec = (tf.TensorSpec((None, 224, 224, 3), tf.float32, name="input"),)
+
+# Конвертация
+model_proto, _ = tf2onnx.convert.from_keras(
+    model, 
+    input_signature=spec,
+    opset=13  # Стабильная версия ONNX opset
+)
+
+# Сохраняем ONNX модель
+onnx_path = "model/model_mobilenet.onnx"
+onnx.save(model_proto, onnx_path)
+print(f"ONNX модель сохранена в {onnx_path}")
+
+# 3. Проверяем ONNX модель
+onnx_model = onnx.load(onnx_path)
+onnx.checker.check_model(onnx_model)
+print("ONNX модель валидна!")
+
+# Сохраняем имена классов
+with open("model/classes.txt", "w") as f:
     for c in classes:
         f.write(f"{c}\n")
 
-print("Модель обучена и готова для API!")   
+print("Модель обучена и сконвертирована в ONNX!")
